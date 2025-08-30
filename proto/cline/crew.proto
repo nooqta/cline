@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package cline;
+import "cline/common.proto";
+option java_package = "bot.cline.proto";
+option java_multiple_files = true;
+
+// Service for multi-agent Crew management and execution mode settings
+service CrewService {
+  // Returns all stored crews and current selection / mode
+  rpc listCrews(EmptyRequest) returns (ListCrewsResponse);
+
+  // Creates a new crew (id may be client-suggested; backend will ensure uniqueness)
+  rpc createCrew(CreateCrewRequest) returns (Crew);
+
+  // Updates an existing crew (full replacement of mutable fields)
+  rpc updateCrew(UpdateCrewRequest) returns (Crew);
+
+  // Deletes a crew by id
+  rpc deleteCrew(DeleteCrewRequest) returns (Empty);
+
+  // Sets the selected (active) crew id
+  rpc setSelectedCrew(SetSelectedCrewRequest) returns (CrewSelectionState);
+
+  // Sets the agent execution mode (single | crew)
+  rpc setAgentExecutionMode(SetAgentExecutionModeRequest) returns (CrewSelectionState);
+
+  // Registers (adds or replaces) a custom OpenAI-compatible provider
+  rpc registerCustomModelProvider(RegisterCustomModelProviderRequest) returns (CustomModelProvider);
+
+  // Lists all registered custom model providers
+  rpc listCustomModelProviders(EmptyRequest) returns (ListCustomModelProvidersResponse);
+
+  // Removes a custom model provider by id
+  rpc removeCustomModelProvider(RemoveCustomModelProviderRequest) returns (Empty);
+}
+
+/* =========================
+ * Data Model Messages
+ * ========================= */
+
+message CrewAgent {
+  string id = 1;
+  string name = 2;
+  string role = 3;
+  optional string description = 4;
+
+  // If default_mcp_servers_all = true, default_mcp_servers list is ignored.
+  repeated string default_mcp_servers = 5;
+  bool default_mcp_servers_all = 6;
+
+  optional string model_provider = 7;
+  optional string model_id = 8;
+  optional bool enabled = 9;
+
+  // Optional explicit allowlist of tool IDs
+  repeated string allowed_tool_ids = 10;
+
+  // Parallel execution grouping label
+  optional string parallel_group = 11;
+
+  // Marks this agent as a reviewer / reflection agent
+  optional bool reflection_role = 12;
+}
+
+message CrewExecutionTermination {
+  // Maximum total loops per agent (optional)
+  optional int32 max_agent_loops = 1;
+  // Placeholder for future confidence score key from state
+  optional string confidence_key = 2;
+  // Whether reviewer approval is required before finalization
+  optional bool require_reviewer_approval = 3;
+  // Maximum reflection cycles (review / self-correction passes) allowed
+  optional int32 max_reflection_cycles = 4;
+}
+
+message CrewExecutionApprovals {
+  optional bool require_plan_approval = 1;
+  optional bool require_reflection_gate = 2;
+}
+
+message CrewExecutionParallel {
+  // Maximum concurrently executing agents in a batch
+  optional int32 max_concurrent_agents = 1;
+}
+
+message CrewExecutionPolicies {
+  optional CrewExecutionTermination termination = 1;
+  optional CrewExecutionApprovals approvals = 2;
+  optional CrewExecutionParallel parallel = 3;
+}
+
+message Crew {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  string architecture = 4;
+  repeated CrewAgent agents = 5;
+  optional bool default = 6;
+  repeated string tags = 7;
+  int64 created_ts = 8;
+  int64 updated_ts = 9;
+  optional CrewExecutionPolicies execution_policies = 10;
+}
+
+/* =========================
+ * Custom Model Provider
+ * ========================= */
+
+message CustomModelProvider {
+  string id = 1;
+  string base_url = 2;
+  map<string, string> headers = 3;
+  repeated string models = 4;
+}
+
+/* =========================
+ * Requests / Responses
+ * ========================= */
+
+message ListCrewsResponse {
+  repeated Crew crews = 1;
+  optional string selected_crew_id = 2;
+  string agent_execution_mode = 3; // "single" | "crew"
+}
+
+message CreateCrewRequest {
+  // Optional client-supplied id; if empty server generates one
+  optional string id = 1;
+  string name = 2;
+  optional string description = 3;
+  string architecture = 4;
+  repeated CrewAgent agents = 5;
+  repeated string tags = 6;
+  optional CrewExecutionPolicies execution_policies = 7;
+  optional bool set_selected = 8; // If true, becomes selectedCrewId
+}
+
+message UpdateCrewRequest {
+  string id = 1;
+  // Full replacement semantics for these mutable fields:
+  optional string name = 2;
+  optional string description = 3;
+  optional string architecture = 4;
+  repeated CrewAgent agents = 5;
+  repeated string tags = 6;
+  optional CrewExecutionPolicies execution_policies = 7;
+  optional bool set_selected = 8;
+}
+
+message DeleteCrewRequest {
+  string id = 1;
+}
+
+message SetSelectedCrewRequest {
+  string id = 1;
+}
+
+message CrewSelectionState {
+  optional string selected_crew_id = 1;
+  string agent_execution_mode = 2; // "single" | "crew"
+}
+
+message SetAgentExecutionModeRequest {
+  string mode = 1; // "single" | "crew"
+}
+
+message RegisterCustomModelProviderRequest {
+  CustomModelProvider provider = 1;
+}
+
+message ListCustomModelProvidersResponse {
+  repeated CustomModelProvider providers = 1;
+}
+
+message RemoveCustomModelProviderRequest {
+  string id = 1;
+}

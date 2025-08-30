@@ -3,6 +3,7 @@ import { ExtensionContext, LanguageModelChatSelector } from "vscode"
 import { Controller } from "@/core/controller"
 import { AutoApprovalSettings, DEFAULT_AUTO_APPROVAL_SETTINGS } from "@/shared/AutoApprovalSettings"
 import { BrowserSettings, DEFAULT_BROWSER_SETTINGS } from "@/shared/BrowserSettings"
+import { AgentExecutionMode, buildDefaultWebDevCrew, Crew } from "@/shared/Crew"
 import { ClineRulesToggles } from "@/shared/cline-rules"
 import { DEFAULT_FOCUS_CHAIN_SETTINGS, FocusChainSettings } from "@/shared/FocusChainSettings"
 import { HistoryItem } from "@/shared/HistoryItem"
@@ -207,6 +208,12 @@ export async function readGlobalStateFromDisk(context: ExtensionContext): Promis
 	const mcpMarketplaceCatalog = context.globalState.get("mcpMarketplaceCatalog") as GlobalState["mcpMarketplaceCatalog"]
 	const qwenCodeOauthPath = context.globalState.get("qwenCodeOauthPath") as GlobalState["qwenCodeOauthPath"]
 	const customPrompt = context.globalState.get("customPrompt") as GlobalState["customPrompt"]
+	const crews = context.globalState.get("crews") as Crew[] | undefined
+	const selectedCrewId = context.globalState.get("selectedCrewId") as string | undefined
+	const agentExecutionMode = context.globalState.get("agentExecutionMode") as AgentExecutionMode | undefined
+	const customModelProviders = context.globalState.get("customModelProviders") as
+		| GlobalState["customModelProviders"]
+		| undefined
 
 	// Get mode-related configurations
 	const mode = context.globalState.get("mode") as Mode | undefined
@@ -439,6 +446,10 @@ export async function readGlobalStateFromDisk(context: ExtensionContext): Promis
 		mcpMarketplaceCatalog,
 		qwenCodeOauthPath,
 		customPrompt,
+		crews: crews || [buildDefaultWebDevCrew()],
+		selectedCrewId: selectedCrewId || "default-web-dev",
+		agentExecutionMode: agentExecutionMode || "single",
+		customModelProviders: customModelProviders || [],
 	}
 }
 

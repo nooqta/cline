@@ -3,6 +3,7 @@ import { FocusChainSettings } from "@shared/FocusChainSettings"
 import { LanguageModelChatSelector } from "vscode"
 import { AutoApprovalSettings } from "@/shared/AutoApprovalSettings"
 import { BrowserSettings } from "@/shared/BrowserSettings"
+import { AgentExecutionMode, Crew } from "@/shared/Crew"
 import { ClineRulesToggles } from "@/shared/cline-rules"
 import { HistoryItem } from "@/shared/HistoryItem"
 import { McpDisplayMode } from "@/shared/McpDisplayMode"
@@ -146,6 +147,17 @@ export interface GlobalState {
 	planModeVercelAiGatewayModelInfo: ModelInfo | undefined
 	actModeVercelAiGatewayModelId: string | undefined
 	actModeVercelAiGatewayModelInfo: ModelInfo | undefined
+
+	// Multi-agent (Crew) support
+	crews: Crew[]
+	selectedCrewId: string | undefined
+	agentExecutionMode: AgentExecutionMode
+	customModelProviders: {
+		id: string
+		baseUrl: string
+		headers?: Record<string, string>
+		models: string[]
+	}[]
 }
 
 export interface Secrets {
