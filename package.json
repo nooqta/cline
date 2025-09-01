@@ -1,6 +1,6 @@
 {
-	"name": "claude-dev",
-	"displayName": "Cline",
+	"name": "cline-fork-local",
+	"displayName": "Cline Crew Dev",
 	"description": "Autonomous coding agent right in your IDE, capable of creating/editing files, running commands, using the browser, and more with your permission every step of the way.",
 	"version": "3.26.6",
 	"icon": "assets/icons/icon.png",
@@ -42,7 +42,25 @@
 	"activationEvents": [
 		"onLanguage",
 		"onStartupFinished",
-		"workspaceContains:evals.env"
+		"workspaceContains:evals.env",
+		"onView:noqta-stine.SidebarProvider",
+		"onCommand:noqta-stine.plusButtonClicked",
+		"onCommand:noqta-stine.mcpButtonClicked",
+		"onCommand:noqta-stine.historyButtonClicked",
+		"onCommand:noqta-stine.popoutButtonClicked",
+		"onCommand:noqta-stine.accountButtonClicked",
+		"onCommand:noqta-stine.settingsButtonClicked",
+		"onCommand:noqta-stine.addToChat",
+		"onCommand:noqta-stine.addTerminalOutputToChat",
+		"onCommand:noqta-stine.focusChatInput",
+		"onCommand:noqta-stine.generateGitCommitMessage",
+		"onCommand:noqta-stine.abortGitCommitMessage",
+		"onCommand:noqta-stine.explainCode",
+		"onCommand:noqta-stine.improveCode",
+		"onCommand:noqta-stine.fixWithCline",
+		"onCommand:noqta-stine.openWalkthrough",
+		"onCommand:noqta-stine.openInNewTab",
+		"onCommand:noqta-stine.dev.createTestTasks"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -101,13 +119,13 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "claude-dev-ActivityBar",
+					"id": "noqta-stine-ActivityBar",
 					"title": "Cline (⌘+')",
 					"icon": "assets/icons/icon.svg",
 					"when": "isMac"
 				},
 				{
-					"id": "claude-dev-ActivityBar",
+					"id": "noqta-stine-ActivityBar",
 					"title": "Cline (Ctrl+')",
 					"icon": "assets/icons/icon.svg",
 					"when": "!isMac"
@@ -115,10 +133,10 @@
 			]
 		},
 		"views": {
-			"claude-dev-ActivityBar": [
+			"noqta-stine-ActivityBar": [
 				{
 					"type": "webview",
-					"id": "claude-dev.SidebarProvider",
+					"id": "noqta-stine.SidebarProvider",
 					"name": "",
 					"icon": "assets/icons/icon.svg"
 				}
@@ -126,92 +144,97 @@
 		},
 		"commands": [
 			{
-				"command": "cline.plusButtonClicked",
+				"command": "noqta-stine.plusButtonClicked",
 				"title": "New Task",
 				"icon": "$(add)"
 			},
 			{
-				"command": "cline.mcpButtonClicked",
+				"command": "noqta-stine.mcpButtonClicked",
 				"title": "MCP Servers",
 				"icon": "$(server)"
 			},
 			{
-				"command": "cline.historyButtonClicked",
+				"command": "noqta-stine.historyButtonClicked",
 				"title": "History",
 				"icon": "$(history)"
 			},
 			{
-				"command": "cline.popoutButtonClicked",
+				"command": "noqta-stine.popoutButtonClicked",
 				"title": "Open in Editor",
 				"icon": "$(link-external)"
 			},
 			{
-				"command": "cline.accountButtonClicked",
+				"command": "noqta-stine.accountButtonClicked",
 				"title": "Account",
 				"icon": "$(account)"
 			},
 			{
-				"command": "cline.settingsButtonClicked",
+				"command": "noqta-stine.settingsButtonClicked",
 				"title": "Settings",
 				"icon": "$(settings-gear)"
 			},
 			{
-				"command": "cline.openInNewTab",
+				"command": "noqta-stine.openInNewTab",
 				"title": "Open In New Tab",
 				"category": "Cline"
 			},
 			{
-				"command": "cline.dev.createTestTasks",
+				"command": "noqta-stine.dev.createTestTasks",
 				"title": "Create Test Tasks",
 				"category": "Cline",
-				"when": "cline.isDevMode"
+				"when": "noqta-stine.isDevMode"
 			},
 			{
-				"command": "cline.addToChat",
+				"command": "noqta-stine.addToChat",
 				"title": "Add to Cline",
 				"category": "Cline"
 			},
 			{
-				"command": "cline.addTerminalOutputToChat",
+				"command": "noqta-stine.addTerminalOutputToChat",
 				"title": "Add to Cline",
 				"category": "Cline"
 			},
 			{
-				"command": "cline.focusChatInput",
+				"command": "noqta-stine.focusChatInput",
 				"title": "Jump to Chat Input",
 				"category": "Cline"
 			},
 			{
-				"command": "cline.generateGitCommitMessage",
+				"command": "noqta-stine.generateGitCommitMessage",
 				"title": "Generate Commit Message with Cline",
 				"category": "Cline",
 				"icon": "$(robot)"
 			},
 			{
-				"command": "cline.abortGitCommitMessage",
+				"command": "noqta-stine.abortGitCommitMessage",
 				"title": "Generate Commit Message with Cline - Stop",
 				"category": "Cline",
 				"icon": "$(debug-stop)"
 			},
 			{
-				"command": "cline.explainCode",
+				"command": "noqta-stine.explainCode",
 				"title": "Explain with Cline",
 				"category": "Cline"
 			},
 			{
-				"command": "cline.improveCode",
+				"command": "noqta-stine.improveCode",
 				"title": "Improve with Cline",
 				"category": "Cline"
 			},
 			{
-				"command": "cline.openWalkthrough",
+				"command": "noqta-stine.fixWithCline",
+				"title": "Fix with Cline",
+				"category": "Cline"
+			},
+			{
+				"command": "noqta-stine.openWalkthrough",
 				"title": "Open Walkthrough",
 				"category": "Cline"
 			}
 		],
 		"keybindings": [
 			{
-				"command": "cline.addToChat",
+				"command": "noqta-stine.addToChat",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -219,11 +242,11 @@
 				"when": "editorHasSelection"
 			},
 			{
-				"command": "cline.generateGitCommitMessage",
+				"command": "noqta-stine.generateGitCommitMessage",
 				"when": "config.git.enabled && scmProvider == git"
 			},
 			{
-				"command": "cline.focusChatInput",
+				"command": "noqta-stine.focusChatInput",
 				"key": "cmd+'",
 				"mac": "cmd+'",
 				"win": "ctrl+'",
@@ -234,101 +257,101 @@
 		"menus": {
 			"view/title": [
 				{
-					"command": "cline.plusButtonClicked",
+					"command": "noqta-stine.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == noqta-stine.SidebarProvider"
 				},
 				{
-					"command": "cline.mcpButtonClicked",
+					"command": "noqta-stine.mcpButtonClicked",
 					"group": "navigation@2",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == noqta-stine.SidebarProvider"
 				},
 				{
-					"command": "cline.historyButtonClicked",
+					"command": "noqta-stine.historyButtonClicked",
 					"group": "navigation@3",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == noqta-stine.SidebarProvider"
 				},
 				{
-					"command": "cline.popoutButtonClicked",
+					"command": "noqta-stine.popoutButtonClicked",
 					"group": "navigation@4",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == noqta-stine.SidebarProvider"
 				},
 				{
-					"command": "cline.accountButtonClicked",
+					"command": "noqta-stine.accountButtonClicked",
 					"group": "navigation@5",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == noqta-stine.SidebarProvider"
 				},
 				{
-					"command": "cline.settingsButtonClicked",
+					"command": "noqta-stine.settingsButtonClicked",
 					"group": "navigation@6",
-					"when": "view == claude-dev.SidebarProvider"
+					"when": "view == noqta-stine.SidebarProvider"
 				}
 			],
 			"editor/title": [
 				{
-					"command": "cline.plusButtonClicked",
+					"command": "noqta-stine.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == noqta-stine.TabPanelProvider"
 				},
 				{
-					"command": "cline.mcpButtonClicked",
+					"command": "noqta-stine.mcpButtonClicked",
 					"group": "navigation@2",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == noqta-stine.TabPanelProvider"
 				},
 				{
-					"command": "cline.historyButtonClicked",
+					"command": "noqta-stine.historyButtonClicked",
 					"group": "navigation@3",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == noqta-stine.TabPanelProvider"
 				},
 				{
-					"command": "cline.popoutButtonClicked",
+					"command": "noqta-stine.popoutButtonClicked",
 					"group": "navigation@4",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == noqta-stine.TabPanelProvider"
 				},
 				{
-					"command": "cline.accountButtonClicked",
+					"command": "noqta-stine.accountButtonClicked",
 					"group": "navigation@5",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == noqta-stine.TabPanelProvider"
 				},
 				{
-					"command": "cline.settingsButtonClicked",
+					"command": "noqta-stine.settingsButtonClicked",
 					"group": "navigation@6",
-					"when": "activeWebviewPanelId == claude-dev.TabPanelProvider"
+					"when": "activeWebviewPanelId == noqta-stine.TabPanelProvider"
 				}
 			],
 			"editor/context": [
 				{
-					"command": "cline.addToChat",
+					"command": "noqta-stine.addToChat",
 					"group": "navigation",
 					"when": "editorHasSelection"
 				}
 			],
 			"terminal/context": [
 				{
-					"command": "cline.addTerminalOutputToChat",
+					"command": "noqta-stine.addTerminalOutputToChat",
 					"group": "navigation"
 				}
 			],
 			"scm/title": [
 				{
-					"command": "cline.generateGitCommitMessage",
+					"command": "noqta-stine.generateGitCommitMessage",
 					"group": "navigation",
-					"when": "config.git.enabled && scmProvider == git && !cline.isGeneratingCommit"
+					"when": "config.git.enabled && scmProvider == git && !noqta-stine.isGeneratingCommit"
 				},
 				{
-					"command": "cline.abortGitCommitMessage",
+					"command": "noqta-stine.abortGitCommitMessage",
 					"group": "navigation",
-					"when": "config.git.enabled && scmProvider == git && cline.isGeneratingCommit"
+					"when": "config.git.enabled && scmProvider == git && noqta-stine.isGeneratingCommit"
 				}
 			],
 			"commandPalette": [
 				{
-					"command": "cline.generateGitCommitMessage",
-					"when": "config.git.enabled && scmProvider == git && !cline.isGeneratingCommit"
+					"command": "noqta-stine.generateGitCommitMessage",
+					"when": "config.git.enabled && scmProvider == git && !noqta-stine.isGeneratingCommit"
 				},
 				{
-					"command": "cline.abortGitCommitMessage",
-					"when": "config.git.enabled && scmProvider == git && cline.isGeneratingCommit"
+					"command": "noqta-stine.abortGitCommitMessage",
+					"when": "config.git.enabled && scmProvider == git && noqta-stine.isGeneratingCommit"
 				}
 			]
 		},

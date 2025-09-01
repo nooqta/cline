@@ -3,12 +3,12 @@ import { combineApiRequests } from "@shared/combineApiRequests"
 import { combineCommandSequences } from "@shared/combineCommandSequences"
 import type { ClineApiReqInfo, ClineMessage } from "@shared/ExtensionMessage"
 import { getApiMetrics } from "@shared/getApiMetrics"
-import { BooleanRequest, StringRequest } from "@shared/proto/cline/common"
-import { useCallback, useEffect, useMemo } from "react"
+import { BooleanRequest, EmptyRequest, StringRequest } from "@shared/proto/cline/common"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useMount } from "react-use"
 import { normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { FileServiceClient, UiServiceClient } from "@/services/grpc-client"
+import { CrewServiceClient, FileServiceClient, UiServiceClient } from "@/services/grpc-client"
 import { Navbar } from "../menu/Navbar"
 import AutoApproveBar from "./auto-approve-menu/AutoApproveBar"
 // Import utilities and hooks from the new structure
@@ -53,6 +53,18 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		userInfo,
 		currentFocusChainChecklist,
 	} = useExtensionState()
+
+	// Crew banner state (derived from CrewService listCrews)
+	const [crewBanner, setCrewBanner] = useState<
+		| {
+				crewName: string
+				agentCount: number
+				agentsEnabled: number
+				overridesCount: number
+				providerOverride: boolean
+		  }
+		| undefined
+	>(undefined)
 	const isProdHostedApp = userInfo?.apiBaseUrl === "https://app.cline.bot"
 	const shouldShowQuickWins = isProdHostedApp && (!taskHistory || taskHistory.length < QUICK_WINS_HISTORY_THRESHOLD)
 
@@ -97,6 +109,57 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		textAreaRef,
 	} = chatState
 
+	useEffect(() => {
+		let cancelled = false
+		async function fetchCrewInfo() {
+			try {
+				const resp = await CrewServiceClient.listCrews(EmptyRequest.create({}))
+				if (cancelled || !resp) return
+				const modeExec = (resp as any).agentExecutionMode || (resp as any).agent_execution_mode
+				const selectedCrewId = (resp as any).selectedCrewId || (resp as any).selected_crew_id
+				if (modeExec !== "crew" || !selectedCrewId) {
+					setCrewBanner(undefined)
+					return
+				}
+				const crews = (resp as any).crews || []
+				const crew = crews.find((c: any) => c.id === selectedCrewId)
+				if (!crew) {
+					setCrewBanner(undefined)
+					return
+				}
+				const agents = crew.agents || []
+				const agentCount = agents.length
+				const agentsEnabled = agents.filter((a: any) => a.enabled !== false).length
+				const overridesCount = agents.filter(
+					(a: any) =>
+						(a.modelProvider && a.modelProvider.trim()) ||
+						(a.modelId && a.modelId.trim()) ||
+						(a.allowedToolIds && a.allowedToolIds.length > 0),
+				).length
+				const pc = crew.providerConfig || {}
+				const providerOverride =
+					!!(pc.provider && pc.provider.trim()) ||
+					!!(pc.modelId && pc.modelId.trim()) ||
+					(pc.mcpServerIds && pc.mcpServerIds.length > 0) ||
+					(pc.extra && Object.keys(pc.extra).length > 0)
+
+				setCrewBanner({
+					crewName: crew.name || "Unnamed Crew",
+					agentCount,
+					agentsEnabled,
+					overridesCount,
+					providerOverride,
+				})
+			} catch (err) {
+				// Non-fatal: silently ignore for now
+				setCrewBanner(undefined)
+			}
+		}
+		fetchCrewInfo()
+		return () => {
+			cancelled = true
+		}
+	}, [])
 	useEffect(() => {
 		const handleCopy = async (e: ClipboardEvent) => {
 			const targetElement = e.target as HTMLElement | null
@@ -387,6 +450,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 				/>
 				<InputSection
 					chatState={chatState}
+					crewBanner={crewBanner}
 					messageHandlers={messageHandlers}
 					placeholderText={placeholderText}
 					scrollBehavior={scrollBehavior}

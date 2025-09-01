@@ -33,6 +33,12 @@ service CrewService {
 
   // Removes a custom model provider by id
   rpc removeCustomModelProvider(RemoveCustomModelProviderRequest) returns (Empty);
+
+  // Sets or clears crew-level provider configuration overrides
+  rpc setCrewProviderConfig(SetCrewProviderConfigRequest) returns (Crew);
+
+  // Updates a single agent's override fields (enabled/model/tool allowlist)
+  rpc setCrewAgentConfig(SetCrewAgentConfigRequest) returns (CrewAgent);
 }
 
 /* =========================
@@ -101,6 +107,18 @@ message Crew {
   int64 created_ts = 8;
   int64 updated_ts = 9;
   optional CrewExecutionPolicies execution_policies = 10;
+  optional CrewProviderConfig provider_config = 11;
+}
+
+message CrewProviderConfig {
+  // Optional provider ID override (if unset, inherits global)
+  optional string provider = 1;
+  // Optional model ID override (if unset, inherits provider default / global)
+  optional string model_id = 2;
+  // Optional subset of MCP server IDs allowed for this crew (empty = inherit all)
+  repeated string mcp_server_ids = 3;
+  // Arbitrary provider-specific parameters (e.g., temperature)
+  map<string,string> extra = 4;
 }
 
 /* =========================
@@ -134,6 +152,7 @@ message CreateCrewRequest {
   repeated string tags = 6;
   optional CrewExecutionPolicies execution_policies = 7;
   optional bool set_selected = 8; // If true, becomes selectedCrewId
+  optional CrewProviderConfig provider_config = 9;
 }
 
 message UpdateCrewRequest {
@@ -146,6 +165,7 @@ message UpdateCrewRequest {
   repeated string tags = 6;
   optional CrewExecutionPolicies execution_policies = 7;
   optional bool set_selected = 8;
+  optional CrewProviderConfig provider_config = 9;
 }
 
 message DeleteCrewRequest {
@@ -163,6 +183,22 @@ message CrewSelectionState {
 
 message SetAgentExecutionModeRequest {
   string mode = 1; // "single" | "crew"
+}
+
+message SetCrewProviderConfigRequest {
+  string crew_id = 1;
+  // Full replacement of provider config (null / missing fields clear override)
+  CrewProviderConfig config = 2;
+}
+
+message SetCrewAgentConfigRequest {
+  string crew_id = 1;
+  string agent_id = 2;
+  optional bool enabled = 3;
+  optional string model_provider = 4;
+  optional string model_id = 5;
+  // If provided replaces agent.allowed_tool_ids (empty list clears override)
+  repeated string allowed_tool_ids = 6;
 }
 
 message RegisterCustomModelProviderRequest {

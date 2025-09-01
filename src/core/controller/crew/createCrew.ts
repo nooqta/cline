@@ -122,6 +122,16 @@ export async function createCrew(controller: Controller, request: CreateCrewRequ
 		createdTs: now,
 		updatedTs: now,
 		executionPolicies: convertExecutionPolicies(request.executionPolicies),
+		providerConfig: request.providerConfig
+			? {
+					provider: request.providerConfig.provider || undefined,
+					modelId: request.providerConfig.modelId || undefined,
+					mcpServerIds: request.providerConfig.mcpServerIds?.length
+						? [...request.providerConfig.mcpServerIds]
+						: undefined,
+					extra: request.providerConfig.extra ? { ...request.providerConfig.extra } : undefined,
+				}
+			: undefined,
 	}
 
 	const updatedCrews = [...crews, newCrew]

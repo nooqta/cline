@@ -28,6 +28,9 @@
 import type { Crew, CrewAgent, CrewExecutionPolicies } from "@/shared/Crew"
 import { createCheckpointTagWrapper } from "./CheckpointTagging"
 import { AgentWork, ParallelBatchSummary, ParallelExecutor } from "./ParallelExecutor"
+import { PlanDAGExecutor } from "./PlanDAGExecutor"
+import { invokePlanner } from "./Planner"
+import { Plan, PlanStep } from "./PlanTypes"
 import { ShortTermMemory } from "./ShortTermMemory"
 import { buildRepairInstruction, buildRouteDecisionPrompt, parseRouteDecision, RouteDecision } from "./StructuredDecision"
 import { buildPoliciesFromAgents, ToolAllowlistEnforcer } from "./ToolAllowlist"
@@ -60,15 +63,16 @@ export interface LlmClient {
 
 export interface CrewOrchestratorConfig {
 	llm: LlmClient
-	// Function to access global state (abstracted from controller to ease testing)
 	getGlobalState: <T = any>(key: string) => T | undefined
-	// Optional checkpoint tracker wrapper (only needs commit(messagePrefix?))
 	checkpointTracker?: { commit: (messagePrefix?: string) => Promise<string | undefined> }
-	// Max attempts to repair route decision JSON
 	routeDecisionMaxAttempts?: number
 	// Telemetry hooks
 	onRouteDecisionAttempt?: (raw: string, error?: string, attempt?: number) => void | Promise<void>
 	onParallelBatchComplete?: (summary: ParallelBatchSummary) => void | Promise<void>
+	onPlanAttempt?: (raw: string, error?: string, attempt?: number) => void | Promise<void>
+	onPlanGenerated?: (plan: Plan, generatedVia: "planner" | "skeleton") => void | Promise<void>
+	onPlanStepUpdate?: (step: PlanStep, event: "start" | "success" | "error") => void | Promise<void>
+	onPlanWaveComplete?: (waveIndex: number, steps: PlanStep[]) => void | Promise<void>
 }
 
 export interface OrchestratorRunOptions {
@@ -90,23 +94,9 @@ export interface OrchestratorRunResult {
 	// Future: plan object, reflection summary, termination reason, checkpoints metadata
 }
 
-/* ========== Plan (runtime-only, not yet serialized) ========== */
-
-export interface PlanStep {
-	id: string
-	description: string
-	agentId?: string
-	parallelGroup?: string
-	dependsOn?: string[]
-	status?: "pending" | "running" | "done" | "error"
-}
-
-export interface Plan {
-	id: string
-	createdTs: number
-	rationale?: string
-	steps: PlanStep[]
-}
+/* ========== Plan Types ==========
+ * Moved to PlanTypes.ts for shared usage (planner, DAG executor, orchestrator).
+ */
 
 /* ========== Termination State (runtime-only) ========== */
 
@@ -184,9 +174,33 @@ export class CrewOrchestrator {
 
 		switch (routeDecision.strategy) {
 			case "plan_then_parallel": {
-				plan = this.generateSkeletonPlan(options.goal)
-				planGenerated = true
-				parallelBatchesExecuted = await this.executePlanThenParallel()
+				const agentSummaries = this.crew.agents.map((a) => ({
+					id: a.id,
+					role: a.role || a.id,
+					parallelGroup: (a as any).parallelGroup,
+				}))
+				try {
+					plan = await invokePlanner({
+						goal: options.goal,
+						recentNotes: options.recentNotes,
+						crewName: this.crew.name,
+						agentSummaries,
+						llm: this.cfg.llm,
+						onAttempt: this.cfg.onPlanAttempt,
+					})
+					planGenerated = true
+					await this.cfg.onPlanGenerated?.(plan, "planner")
+					this.memory.appendThought(`Planner produced ${plan.steps.length} steps.`)
+					if (plan.rationale) this.memory.appendThought(`Plan rationale: ${plan.rationale.substring(0, 200)}`)
+				} catch (err) {
+					// Fallback to skeleton plan
+					plan = this.generateSkeletonPlan(options.goal)
+					planGenerated = true
+					await this.cfg.onPlanGenerated?.(plan, "skeleton")
+					if (plan.rationale) this.memory.appendThought(`Fallback plan rationale: ${plan.rationale.substring(0, 200)}`)
+					this.memory.appendObservation({ content: "Planner failed, using skeleton plan fallback", success: false })
+				}
+				parallelBatchesExecuted = await this.executePlanThenParallel(plan)
 				break
 			}
 			case "direct_execution": {
@@ -306,38 +320,64 @@ export class CrewOrchestrator {
 	 *  - Future: call planner agent to generate plan steps.
 	 *  - Partition plan steps by agent parallelGroup or role, feed into ParallelExecutor batches.
 	 */
-	private async executePlanThenParallel(): Promise<number> {
+	private async executePlanThenParallel(plan: Plan): Promise<number> {
 		if (this.checkTermination()) return 0
 		if (!this.crew) return 0
 		if (!this.parallelExecutor) return 0
+		if (!plan.steps.length) return 0
 
-		const workerAgents = this.crew.agents.filter(
-			(a) => a.enabled !== false && !a.reflectionRole && a.parallelGroup === "workers",
-		)
-		if (!workerAgents.length) return 0
-
-		const fakeWork: AgentWork[] = workerAgents.map((agent) => ({
-			agentId: agent.id,
-			phase: "execution",
-			input: undefined,
-			label: "planned-worker-step",
-			run: async () => ({
-				agentId: agent.id,
-				phase: "execution",
-				success: true,
-				output: { placeholder: "planned" },
-				startedAt: Date.now(),
-				finishedAt: Date.now(),
-			}),
-		}))
-
-		await this.parallelExecutor.runBatch(fakeWork)
-		this.memory.appendObservation({
-			content: `Executed planned batch with ${fakeWork.length} placeholder steps`,
-			success: true,
+		// Build DAG executor with hooks mapping to config + memory
+		const dag = new PlanDAGExecutor({
+			parallelExecutor: this.parallelExecutor,
+			hooks: {
+				onStepUpdate: async (step, event) => {
+					if (event === "start") this.memory.appendThought(`Step ${step.id} started`)
+					else if (event === "success")
+						this.memory.appendObservation({
+							content: `Step ${step.id} completed: ${step.description}`,
+							success: true,
+						})
+					else if (event === "error")
+						this.memory.appendObservation({ content: `Step ${step.id} failed: ${step.errorMessage}`, success: false })
+					await this.cfg.onPlanStepUpdate?.(step, event)
+				},
+				onWaveComplete: async (waveIndex, steps) => {
+					await this.cfg.onPlanWaveComplete?.(waveIndex, steps)
+					this.memory.appendThought(`Wave ${waveIndex} complete (${steps.length} steps).`)
+				},
+			},
 		})
-		if (this.checkTermination()) return 1
-		return 1
+
+		// Default agent assignment fallback: first non-reflection enabled agent
+		const defaultAgent = this.crew.agents.find((a) => a.enabled !== false && !a.reflectionRole)
+		const buildWork = (step: PlanStep): AgentWork => {
+			if (!step.agentId && defaultAgent) {
+				step.agentId = defaultAgent.id // mutate for matching
+			}
+			const agentId = step.agentId || "unassigned"
+			return {
+				agentId,
+				phase: "execution",
+				input: undefined,
+				label: step.description,
+				run: async () => ({
+					agentId,
+					phase: "execution",
+					success: true,
+					output: { placeholder: "planned-exec", stepId: step.id },
+					startedAt: Date.now(),
+					finishedAt: Date.now(),
+				}),
+			}
+		}
+
+		const result = await dag.run(plan, buildWork)
+		// Post-execution summary memory entry
+		const doneCount = plan.steps.filter((s) => s.status === "done").length
+		const errorCount = plan.steps.filter((s) => s.status === "error").length
+		this.memory.appendThought(`Plan execution summary: ${doneCount} done, ${errorCount} error, ${result.waves} waves.`)
+		// One "batch" per wave conceptually; return waves count
+		return result.waves
 	}
 
 	/* ========== Termination Enforcement (scaffold) ========== */

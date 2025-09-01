@@ -33,6 +33,13 @@ export interface CrewExecutionPolicies {
 	}
 }
 
+export interface CrewProviderConfig {
+	provider?: string
+	modelId?: string
+	mcpServerIds?: string[]
+	extra?: Record<string, string>
+}
+
 export interface Crew {
 	id: string
 	name: string
@@ -44,6 +51,7 @@ export interface Crew {
 	createdTs: number
 	updatedTs: number
 	executionPolicies?: CrewExecutionPolicies
+	providerConfig?: CrewProviderConfig
 }
 
 /**

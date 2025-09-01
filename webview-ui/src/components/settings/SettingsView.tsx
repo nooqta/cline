@@ -1,7 +1,17 @@
 import { ExtensionMessage } from "@shared/ExtensionMessage"
 import { ResetStateRequest } from "@shared/proto/cline/state"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
-import { CheckCheck, FlaskConical, Info, LucideIcon, Settings, SquareMousePointer, SquareTerminal, Webhook } from "lucide-react"
+import {
+	CheckCheck,
+	FlaskConical,
+	Info,
+	LucideIcon,
+	Settings,
+	SquareMousePointer,
+	SquareTerminal,
+	Users,
+	Webhook,
+} from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useEvent } from "react-use"
 import HeroTooltip from "@/components/common/HeroTooltip"
@@ -12,6 +22,7 @@ import SectionHeader from "./SectionHeader"
 import AboutSection from "./sections/AboutSection"
 import ApiConfigurationSection from "./sections/ApiConfigurationSection"
 import BrowserSettingsSection from "./sections/BrowserSettingsSection"
+import CrewManagementSection from "./sections/CrewManagementSection"
 import DebugSection from "./sections/DebugSection"
 import FeatureSettingsSection from "./sections/FeatureSettingsSection"
 import GeneralSettingsSection from "./sections/GeneralSettingsSection"
@@ -58,6 +69,13 @@ export const SETTINGS_TABS: SettingsTab[] = [
 		tooltipText: "Feature Settings",
 		headerText: "Feature Settings",
 		icon: CheckCheck,
+	},
+	{
+		id: "crews",
+		name: "Crews",
+		tooltipText: "Crew Management",
+		headerText: "Crew Management",
+		icon: Users,
 	},
 	{
 		id: "browser",
@@ -295,6 +313,9 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 
 							{/* Feature Settings Tab */}
 							{activeTab === "features" && <FeatureSettingsSection renderSectionHeader={renderSectionHeader} />}
+
+							{/* Crew Management Tab */}
+							{activeTab === "crews" && <CrewManagementSection renderSectionHeader={renderSectionHeader} />}
 
 							{/* Browser Settings Tab */}
 							{activeTab === "browser" && <BrowserSettingsSection renderSectionHeader={renderSectionHeader} />}

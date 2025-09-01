@@ -60,6 +60,14 @@ function toProtoCrew(c: UiCrew): ProtoCrew {
 						: undefined,
 				}
 			: undefined,
+		providerConfig: c.providerConfig
+			? {
+					provider: c.providerConfig.provider,
+					modelId: c.providerConfig.modelId,
+					mcpServerIds: c.providerConfig.mcpServerIds || [],
+					extra: c.providerConfig.extra || {},
+				}
+			: undefined,
 	})
 }
 

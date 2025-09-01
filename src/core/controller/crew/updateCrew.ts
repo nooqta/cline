@@ -107,6 +107,17 @@ export async function updateCrew(controller: Controller, request: UpdateCrewRequ
 		agents: normalizeAgents(request.agents),
 		tags: request.tags ? [...request.tags] : [],
 		executionPolicies: convertExecutionPolicies(request.executionPolicies),
+		// Provider config: full replacement if present, else keep existing
+		providerConfig: request.providerConfig
+			? {
+					provider: request.providerConfig.provider || undefined,
+					modelId: request.providerConfig.modelId || undefined,
+					mcpServerIds: request.providerConfig.mcpServerIds?.length
+						? [...request.providerConfig.mcpServerIds]
+						: undefined,
+					extra: request.providerConfig.extra ? { ...request.providerConfig.extra } : undefined,
+				}
+			: existing.providerConfig,
 		updatedTs: Date.now(),
 		// createdTs preserved
 	}
